@@ -5,53 +5,90 @@ import android.os.Bundle
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.ListView
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.example.proyecto.API.LeerProductosApi
+import com.example.proyecto.API.ProductoApi
+import com.example.proyecto.Funciones.CombinarProductosWarhammer
 
 class MainActivity3 : AppCompatActivity() {
+
+
+
+    private lateinit var lvTienda: ListView
+    private lateinit var btnVolver: Button
+    private val nombresProductos = mutableListOf<String>()
+    private var productosApi: List<ProductoApi> = emptyList()
+    private val combinadorWarhammer = CombinarProductosWarhammer()
+    private lateinit var btnCarrito: Button
+
+
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main3)
 
-        val LvTienda: ListView = findViewById(R.id.lvTienda)
-        val btnVolver: Button = findViewById(R.id.btnVolverMenu)
-
-        val opcionesArr = arrayOf(
-            "Warhammer 40,000: Dawn of War - Anniversary Edition",
-            "Warhammer 40,000: Dawn of War - Definitive Edition",
-            "Warhammer 40,000: Dawn of War II - Anniversary Edition",
-            "Warhammer 40,000: Dawn of War III",
-            "Warhammer 40,000: Dawn of War IV"
-        )
-
-        val preciosArr = arrayOf(
-            "$7.900",
-            "$15.800",
-            "$22.900",
-            "$35.000",
-            "PROXIMAMENTE"
-        )
+        lvTienda = findViewById(R.id.lvTienda)
+        btnVolver = findViewById(R.id.btnVolverMenu)
+        btnCarrito = findViewById(R.id.btnVerCarrito)
 
         val adaptador = ArrayAdapter(
-            this, android.R.layout.simple_list_item_1, opcionesArr
+            this,
+            android.R.layout.simple_list_item_1,
+            nombresProductos
         )
 
-        LvTienda.adapter = adaptador
+        lvTienda.adapter = adaptador
+        lvTienda.setOnItemClickListener { _, _, position, _ ->
+            if (position in productosApi.indices) {
+                val producto = productosApi[position]
 
-        LvTienda.setOnItemClickListener { parent, view, position, id ->
-            val intent = Intent(this, MainActivity4::class.java)
-            intent.putExtra("nombreJuego", opcionesArr[position])
-            intent.putExtra("precioJuego", preciosArr[position])
-            startActivity(intent)
+                val intent = Intent(this, MainActivity4::class.java)
+                intent.putExtra("nombreJuego", producto.title)
+                intent.putExtra("precioJuego", producto.price.toString())
+                startActivity(intent)
+            }
         }
 
         btnVolver.setOnClickListener {
             val anteriorVentana = Intent(this, MainActivity2::class.java)
             startActivity(anteriorVentana)
         }
+
+        btnCarrito.setOnClickListener {
+            startActivity(Intent(this, CarritoActivity::class.java))
+        }
+
+
+        val apiProductos = LeerProductosApi(this)
+        apiProductos.cargarProductos(
+            onResult = { lista ->
+                productosApi = combinadorWarhammer.combinar(lista)
+                nombresProductos.clear()
+                nombresProductos.addAll(productosApi.map { it.title })
+                adaptador.notifyDataSetChanged()
+            },
+            onError = { msg ->
+                Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+
+                if (nombresProductos.isEmpty()) {
+                    val mock = listOf(
+                        ProductoApi(1, "Dummy 1", 7.9),
+                        ProductoApi(2, "Dummy 2", 15.8),
+                        ProductoApi(3, "Dummy 3", 22.9)
+                    )
+                    productosApi = combinadorWarhammer.combinar(mock)
+                    nombresProductos.clear()
+                    nombresProductos.addAll(productosApi.map { it.title })
+                    adaptador.notifyDataSetChanged()
+                }
+            }
+        )
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
