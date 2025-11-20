@@ -24,6 +24,16 @@ class MainActivity : AppCompatActivity() {
         var defUsername = "admin"
         var defPasswd = "admin"
 
+        btnIngreso.isEnabled = false
+        fun validarcampos(){
+            val usuario = edUsername.text.toString().trim()
+            val pass = edPasswd.text.toString().trim()
+            btnIngreso.isEnabled = usuario.isNotEmpty() && pass.isNotEmpty()
+        }
+
+        edUsername.addTextChangedListener { validarcampos() }
+        edPasswd.addTextChangedListener { validarcampos() }
+
         btnIngreso.setOnClickListener {
             if(edUsername.text.toString() == defUsername.toString()
                 && edPasswd.text.toString() == defPasswd.toString()){
