@@ -56,3 +56,9 @@ class CarritoActivity : AppCompatActivity() {
         lvCarrito.adapter = adaptador
     }
 }
+
+/*
+Damian Ramos
+Paolo Sala
+Vicente Recabarren
+ */

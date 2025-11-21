@@ -56,3 +56,9 @@ class MainActivity2 : AppCompatActivity() {
         }
     }
 }
+
+/*
+Damian Ramos
+Paolo Sala
+Vicente Recabarren
+ */
