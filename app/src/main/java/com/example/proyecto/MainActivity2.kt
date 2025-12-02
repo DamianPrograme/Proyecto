@@ -24,7 +24,8 @@ class MainActivity2 : AppCompatActivity() {
 
         val opcionesArr = arrayOf(
             "Tienda",
-            "Producto"
+            "Producto",
+            "Camara"
         )
 
         val adaptador = ArrayAdapter(
@@ -42,6 +43,10 @@ class MainActivity2 : AppCompatActivity() {
             } else if (itemElegido == "Producto") {
                 val abrirProducto = Intent(this, MainActivity4::class.java)
                 startActivity(abrirProducto)
+
+            }else if (itemElegido == "Camara"){
+                val abrirCamara = Intent(this, MainActivity5::class.java)
+                startActivity(abrirCamara)
 
             }
 
