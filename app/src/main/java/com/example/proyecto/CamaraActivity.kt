@@ -26,7 +26,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
 
-class MainActivity5 : AppCompatActivity() {
+class CamaraActivity : AppCompatActivity() {
 
     private var cameraManager: CameraManager? = null
     private lateinit var previewView: PreviewView
@@ -94,7 +94,7 @@ class MainActivity5 : AppCompatActivity() {
 
         // REGRESAR
         btnregresar.setOnClickListener {
-            startActivity(Intent(this, MainActivity2::class.java))
+            startActivity(Intent(this, MenuPrincipalActivity::class.java))
         }
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->

@@ -10,30 +10,34 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.proyecto.API.LeerMonedaApi
+import com.example.proyecto.Funciones.CarritoDao
 import com.example.proyecto.Funciones.CarritoItem
-import com.example.proyecto.Funciones.CarritoManager
 import com.example.proyecto.Funciones.FormatoClp
 import com.example.proyecto.Funciones.ObtenerTipoJuego
 
-class MainActivity4 : AppCompatActivity() {
-
-
+class DetalleJuegoActivity : AppCompatActivity() {
 
     private lateinit var txNombre: TextView
     private lateinit var txTipo: TextView
     private lateinit var txPrecio: TextView
     private lateinit var btnVolver: Button
     private lateinit var btnAgregarCarrito: Button
+
     private val obtenerTipoJuego = ObtenerTipoJuego()
     private val formatoClp = FormatoClp()
     private var precioClpActual: Double? = null
+    private lateinit var carritoDao: CarritoDao
 
-
+    companion object {
+        private const val PRECIO_MAX_CLP = 35_000
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main4)
+
+        carritoDao = CarritoDao(this)
 
         txNombre = findViewById(R.id.txNombreJuego)
         txTipo   = findViewById(R.id.txTipoJuego)
@@ -52,9 +56,15 @@ class MainActivity4 : AppCompatActivity() {
         val apiMoneda = LeerMonedaApi(this)
         apiMoneda.obtenerFactorUsdAClp(
             onResult = { factorUsdAClp ->
-                val precioClp = precioUsd * factorUsdAClp
-                precioClpActual = precioClp
-                val precioFormateado = formatoClp.formatear(precioClp)
+                val precioClpBruto = precioUsd * factorUsdAClp
+                val precioClpEntero = precioClpBruto.toInt()
+                val precioClpTope = if (precioClpEntero > PRECIO_MAX_CLP) {
+                    PRECIO_MAX_CLP
+                } else {
+                    precioClpEntero
+                }
+                precioClpActual = precioClpTope.toDouble()
+                val precioFormateado = formatoClp.formatear(precioClpTope.toDouble())
                 txPrecio.text = "Precio: $precioFormateado CLP"
             },
             onError = { msg ->
@@ -71,15 +81,22 @@ class MainActivity4 : AppCompatActivity() {
                 val item = CarritoItem(
                     nombre = nombreJuego,
                     tipo = obtenerTipoJuego.obtener(nombreJuego),
-                    precioClp = precioClp
+                    precioClp = precioClp,
+                    cantidad = 1
                 )
-                CarritoManager.agregarItem(this, item)
-                Toast.makeText(this, "Agregado al carrito", Toast.LENGTH_SHORT).show()
+
+                val idInsertado = carritoDao.insertar(item)
+
+                if (idInsertado != -1L) {
+                    Toast.makeText(this, "Agregado al carrito", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Error al guardar en el carrito", Toast.LENGTH_SHORT).show()
+                }
             }
         }
 
         btnVolver.setOnClickListener {
-            val anteriorVentana = Intent(this, MainActivity3::class.java)
+            val anteriorVentana = Intent(this, TiendaActivity::class.java)
             startActivity(anteriorVentana)
         }
 

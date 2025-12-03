@@ -14,7 +14,7 @@ import com.example.proyecto.API.LeerProductosApi
 import com.example.proyecto.API.ProductoApi
 import com.example.proyecto.Funciones.CombinarProductosWarhammer
 
-class MainActivity3 : AppCompatActivity() {
+class TiendaActivity : AppCompatActivity() {
 
 
 
@@ -48,7 +48,7 @@ class MainActivity3 : AppCompatActivity() {
             if (position in productosApi.indices) {
                 val producto = productosApi[position]
 
-                val intent = Intent(this, MainActivity4::class.java)
+                val intent = Intent(this, DetalleJuegoActivity::class.java)
                 intent.putExtra("nombreJuego", producto.title)
                 intent.putExtra("precioJuego", producto.price.toString())
                 startActivity(intent)
@@ -56,7 +56,7 @@ class MainActivity3 : AppCompatActivity() {
         }
 
         btnVolver.setOnClickListener {
-            val anteriorVentana = Intent(this, MainActivity2::class.java)
+            val anteriorVentana = Intent(this, MenuPrincipalActivity::class.java)
             startActivity(anteriorVentana)
         }
 
