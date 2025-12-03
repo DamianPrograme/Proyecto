@@ -10,7 +10,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
-class MainActivity2 : AppCompatActivity() {
+class MenuPrincipalActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -38,14 +38,14 @@ class MainActivity2 : AppCompatActivity() {
             val itemElegido = parent.getItemAtPosition(position).toString()
 
             if (itemElegido == "Tienda") {
-                val abrirTienda = Intent(this, MainActivity3::class.java)
+                val abrirTienda = Intent(this, TiendaActivity::class.java)
                 startActivity(abrirTienda)
             } else if (itemElegido == "Producto") {
-                val abrirProducto = Intent(this, MainActivity4::class.java)
+                val abrirProducto = Intent(this, DetalleJuegoActivity::class.java)
                 startActivity(abrirProducto)
 
             }else if (itemElegido == "Camara"){
-                val abrirCamara = Intent(this, MainActivity5::class.java)
+                val abrirCamara = Intent(this, CamaraActivity::class.java)
                 startActivity(abrirCamara)
 
             }

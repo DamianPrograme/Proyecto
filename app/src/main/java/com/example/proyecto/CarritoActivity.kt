@@ -8,7 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.example.proyecto.Funciones.CarritoManager
+import com.example.proyecto.Funciones.CarritoDao
 import com.example.proyecto.Funciones.FormatoClp
 
 class CarritoActivity : AppCompatActivity() {
@@ -17,12 +17,15 @@ class CarritoActivity : AppCompatActivity() {
     private lateinit var btnVaciar: Button
     private lateinit var btnVolver: Button
 
+    private lateinit var carritoDao: CarritoDao
     private val formatoClp = FormatoClp()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_carrito)
+
+        carritoDao = CarritoDao(this)
 
         lvCarrito = findViewById(R.id.lvCarrito)
         btnVaciar = findViewById(R.id.btnVaciarCarrito)
@@ -31,7 +34,7 @@ class CarritoActivity : AppCompatActivity() {
         actualizarLista()
 
         btnVaciar.setOnClickListener {
-            CarritoManager.limpiarCarrito(this)
+            carritoDao.vaciar()
             actualizarLista()
         }
 
@@ -47,10 +50,10 @@ class CarritoActivity : AppCompatActivity() {
     }
 
     private fun actualizarLista() {
-        val items = CarritoManager.obtenerItems(this)
+        val items = carritoDao.obtenerTodos()
         val textos = items.map { item ->
             val precioStr = formatoClp.formatear(item.precioClp)
-            "${item.nombre}\n${item.tipo}\n$precioStr CLP"
+            "${item.nombre}\n${item.tipo}\n$precioStr CLP x${item.cantidad}"
         }
         val adaptador = ArrayAdapter(this, android.R.layout.simple_list_item_1, textos)
         lvCarrito.adapter = adaptador

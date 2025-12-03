@@ -11,7 +11,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.addTextChangedListener
 
-class MainActivity : AppCompatActivity() {
+class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -38,7 +38,7 @@ class MainActivity : AppCompatActivity() {
         btnIngreso.setOnClickListener {
             if(edUsername.text.toString() == defUsername.toString()
                 && edPasswd.text.toString() == defPasswd.toString()){
-                val nuevaVentana = Intent(this, MainActivity2::class.java)
+                val nuevaVentana = Intent(this, MenuPrincipalActivity::class.java)
                 nuevaVentana.putExtra("par_usern",edUsername.text.toString())
                 startActivity(nuevaVentana)
             }else{
