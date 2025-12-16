@@ -1,214 +1,212 @@
 package com.example.proyecto
 
 import android.Manifest
+import android.content.ContentValues
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.Matrix
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
-import android.util.Log
-import android.view.View
+import android.provider.MediaStore
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.camera.core.*
+import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import android.media.ExifInterface
-import com.example.proyecto.PCamara.CameraManager
-import com.example.proyecto.PCamara.CamaraUtils
-import java.io.File
-import java.io.FileOutputStream
-import java.io.InputStream
+import java.text.SimpleDateFormat
+import java.util.*
 
 class CamaraActivity : AppCompatActivity() {
 
-    private var cameraManager: CameraManager? = null
-    private lateinit var previewView: PreviewView
-    private lateinit var contenedorFoto: ImageView
-
-    private lateinit var btnfoto: Button
+    private lateinit var btnTomarFoto: Button
     private lateinit var btnCargarFoto: Button
-    private lateinit var btnCapturar: Button
-    private lateinit var btnregresar: Button
+    private lateinit var imgvFoto: ImageView
+    private lateinit var previewView: PreviewView
 
-    private val REQUEST_GALLERY = 102
+    private var imageCapture: ImageCapture? = null
+    private var cameraProvider: ProcessCameraProvider? = null
+    private var showingImage = false
+
+    /* Permiso de cámara */
+    private val requestPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) startCamera()
+            else Toast.makeText(this, "Permiso de cámara denegado", Toast.LENGTH_SHORT).show()
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContentView(R.layout.activity_main5)
 
-        btnfoto = findViewById(R.id.btnTomar)
-        btnCargarFoto = findViewById(R.id.btnCargar)
-        btnCapturar = findViewById(R.id.btnCapturar)
-        contenedorFoto = findViewById(R.id.imgvFoto)
         previewView = findViewById(R.id.previewView)
-        btnregresar = findViewById(R.id.btnRegresar)
+        btnTomarFoto = findViewById(R.id.btnTomar)
+        btnCargarFoto = findViewById(R.id.btnCargar)
+        imgvFoto = findViewById(R.id.imgvFoto)
 
-        btnfoto.isEnabled = false
-        btnCapturar.visibility = View.GONE
+        checkCameraPermission()
 
-        // Permiso
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-            == PackageManager.PERMISSION_GRANTED
-        ) {
-            setupCamera()
-        } else {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), 101)
+        btnTomarFoto.setOnClickListener {
+            if (!showingImage) takePhoto()
         }
 
-        // TOMAR FOTO
-        btnfoto.setOnClickListener {
-            cameraManager?.takePhoto { bitmap ->
-                if (bitmap != null) {
+        btnCargarFoto.setOnClickListener {
+            if (!showingImage) loadPhotoFromGallery()
+        }
+    }
 
-                    val corregida = rotarBitmap90(bitmap)
+    /*
+       PERMISOS
+    */
+    private fun checkCameraPermission() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissionLauncher.launch(Manifest.permission.CAMERA)
+        } else {
+            startCamera()
+        }
+    }
 
-                    mostrarBitmap(corregida)
-                    guardarEnMemoriaInterna(corregida)
+    /*
+       INICIAR CÁMARA
+    */
+    private fun startCamera() {
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
-                } else {
-                    Toast.makeText(this, "Error al capturar", Toast.LENGTH_SHORT).show()
+        cameraProviderFuture.addListener({
+            cameraProvider = cameraProviderFuture.get()
+
+            val preview = Preview.Builder()
+                .build()
+                .also {
+                    it.setSurfaceProvider(previewView.surfaceProvider)
+                }
+
+            imageCapture = ImageCapture.Builder()
+                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                .setTargetRotation(previewView.display.rotation) // 🔧 CORREGIDO
+                .build()
+
+            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
+            try {
+                cameraProvider?.unbindAll()
+                cameraProvider?.bindToLifecycle(
+                    this,
+                    cameraSelector,
+                    preview,
+                    imageCapture
+                )
+
+                imgvFoto.visibility = ImageView.GONE
+                previewView.visibility = PreviewView.VISIBLE
+                showingImage = false
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(this, "Error al iniciar la cámara", Toast.LENGTH_SHORT).show()
+            }
+
+        }, ContextCompat.getMainExecutor(this))
+    }
+
+    /*
+       TOMAR FOTO
+    */
+    private fun takePhoto() {
+        val imageCapture = imageCapture ?: return
+
+        val name = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, "IMG_$name.jpg")
+            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.Images.Media.RELATIVE_PATH, "DCIM/ProyectoFotos")
+            }
+        }
+
+        val outputOptions = ImageCapture.OutputFileOptions.Builder(
+            contentResolver,
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+            contentValues
+        ).build()
+
+        imageCapture.takePicture(
+            outputOptions,
+            ContextCompat.getMainExecutor(this),
+            object : ImageCapture.OnImageSavedCallback {
+
+                override fun onError(exception: ImageCaptureException) {
+                    Toast.makeText(
+                        this@CamaraActivity,
+                        "Error al guardar la foto",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+
+                override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
+                    outputFileResults.savedUri?.let { uri ->
+                        mostrarImagen(uri)
+                        Toast.makeText(
+                            this@CamaraActivity,
+                            "Foto guardada en galería",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                 }
             }
-        }
-
-        // CARGAR FOTO
-        btnCargarFoto.setOnClickListener {
-            abrirGaleria()
-        }
-
-        // VOLVER A CAPTURAR
-        btnCapturar.setOnClickListener {
-            contenedorFoto.visibility = View.GONE
-            previewView.visibility = View.VISIBLE
-            btnCapturar.visibility = View.GONE
-            cameraManager?.startCamera(previewView)
-        }
-
-        // REGRESAR
-        btnregresar.setOnClickListener {
-            startActivity(Intent(this, MenuPrincipalActivity::class.java))
-        }
-
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val sb = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(sb.left, sb.top, sb.right, sb.bottom)
-            insets
-        }
+        )
     }
 
-    // PERMISO
-    override fun onRequestPermissionsResult(
-        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
-        if (requestCode == 101 && grantResults.isNotEmpty()
-            && grantResults[0] == PackageManager.PERMISSION_GRANTED
-        ) {
-            setupCamera()
-        }
+    /*
+       GALERÍA
+    */
+    private fun loadPhotoFromGallery() {
+        val intent = Intent(
+            Intent.ACTION_PICK,
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        )
+        startActivityForResult(intent, GALLERY_REQUEST_CODE)
     }
 
-    private fun setupCamera() {
-        cameraManager = CameraManager(this)
-        cameraManager?.startCamera(previewView)
-        btnfoto.isEnabled = true
-    }
-
-    private fun abrirGaleria() {
-        val intent = Intent(Intent.ACTION_PICK).apply {
-            type = "image/*"
-        }
-        startActivityForResult(intent, REQUEST_GALLERY)
-    }
-
-    //IMÁGENES DE GALERÍA
-    private fun corregirOrientacionGaleria(uri: Uri, bitmap: Bitmap): Bitmap {
-        return try {
-            val input: InputStream? = contentResolver.openInputStream(uri)
-            val exif = ExifInterface(input!!)
-
-            val orientacion = exif.getAttributeInt(
-                ExifInterface.TAG_ORIENTATION,
-                ExifInterface.ORIENTATION_NORMAL
-            )
-
-            val matrix = Matrix()
-
-            when (orientacion) {
-                ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
-                ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
-                ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
-            }
-
-            Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-
-        } catch (e: Exception) {
-            bitmap
-        }
-    }
-
-    //ROTAR FOTO DE CÁMARA (CameraX la entrega horizontal)
-    private fun rotarBitmap90(bitmap: Bitmap): Bitmap {
-        val matrix = Matrix()
-        matrix.postRotate(90f)
-        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-    }
-
-    // GALERÍA
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
-        if (requestCode == REQUEST_GALLERY && resultCode == RESULT_OK) {
-            val uri = data?.data ?: return
-            try {
-                var bitmap = CamaraUtils.uriToBitmap(this, uri)
-
-                bitmap = corregirOrientacionGaleria(uri, bitmap)   // ⭐ AGREGADO
-
-                mostrarBitmap(bitmap)
-                guardarEnMemoriaInterna(bitmap)
-
-            } catch (e: Exception) {
-                Toast.makeText(this, "Error al cargar imagen", Toast.LENGTH_SHORT).show()
+        if (requestCode == GALLERY_REQUEST_CODE && resultCode == RESULT_OK) {
+            data?.data?.let { uri ->
+                mostrarImagen(uri)
+                Toast.makeText(this, "Foto cargada de galería", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    // MOSTRAR FOTO
-    private fun mostrarBitmap(bitmap: Bitmap) {
-        contenedorFoto.setImageBitmap(bitmap)
-
-        previewView.visibility = View.GONE
-        contenedorFoto.visibility = View.VISIBLE
-        btnCapturar.visibility = View.VISIBLE
-
-        val base64 = CamaraUtils.convertirDeBitMapABase64(bitmap)
-        Log.d("BASE64", base64.take(80) + "...")
+    /*
+       MOSTRAR IMAGEN
+    */
+    private fun mostrarImagen(uri: Uri) {
+        imgvFoto.setImageURI(uri)
+        imgvFoto.visibility = ImageView.VISIBLE
+        previewView.visibility = PreviewView.INVISIBLE
+        showingImage = true
     }
 
-    // GUARDAR INTERNO
-    private fun guardarEnMemoriaInterna(bitmap: Bitmap) {
-        try {
-            val archivo = File(filesDir, "foto_capturada.jpg")
-            val fos = FileOutputStream(archivo)
-
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, fos)
-            fos.flush()
-            fos.close()
-
-            Toast.makeText(this, "Imagen guardada", Toast.LENGTH_SHORT).show()
-
-        } catch (e: Exception) {
-            Toast.makeText(this, "Error al guardar", Toast.LENGTH_SHORT).show()
+    /*
+       BOTÓN ATRÁS
+    */
+    override fun onBackPressed() {
+        if (showingImage) {
+            startCamera() // vuelve a cámara
+        } else {
+            super.onBackPressed()
         }
+    }
+
+    companion object {
+        private const val GALLERY_REQUEST_CODE = 1001
     }
 }

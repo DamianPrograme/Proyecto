@@ -11,56 +11,65 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
 class MenuPrincipalActivity : AppCompatActivity() {
+
+    private lateinit var lvOpciones: ListView
+    private lateinit var txUsuario: TextView
+    private val opcionesArr = arrayOf("Tienda", "Producto", "Camara")
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main2)
 
-        val LvOpciones: ListView = findViewById(R.id.LvOpciones)
-        val txUsuario: TextView = findViewById(R.id.txUsuario)
+        bindViews()
+        setUsuario()
+        setupListView()
+        handleSystemInsets()
+    }
+
+    private fun bindViews() {
+        lvOpciones = findViewById(R.id.LvOpciones)
+        txUsuario = findViewById(R.id.txUsuario)
+    }
+
+    private fun setUsuario() {
         val recibirUsername = intent.getStringExtra("par_usern")
+        txUsuario.text = recibirUsername ?: "Usuario"
+    }
 
-        txUsuario.text = recibirUsername.toString()
+    private fun setupListView() {
+        val adaptador = ArrayAdapter(this, android.R.layout.simple_list_item_1, opcionesArr)
+        lvOpciones.adapter = adaptador
 
-        val opcionesArr = arrayOf(
-            "Tienda",
-            "Producto",
-            "Camara"
-        )
-
-        val adaptador = ArrayAdapter(
-            this, android.R.layout.simple_list_item_1, opcionesArr
-        )
-
-        LvOpciones.adapter = adaptador
-
-        LvOpciones.setOnItemClickListener { parent, view, position, id ->
+        lvOpciones.setOnItemClickListener { parent, _, position, _ ->
             val itemElegido = parent.getItemAtPosition(position).toString()
+            navigateTo(itemElegido)
+        }
+    }
 
-            if (itemElegido == "Tienda") {
-                val abrirTienda = Intent(this, TiendaActivity::class.java)
-                startActivity(abrirTienda)
-            } else if (itemElegido == "Producto") {
-                val abrirProducto = Intent(this, DetalleJuegoActivity::class.java)
-                startActivity(abrirProducto)
+    private fun navigateTo(opcion: String) {
+        val intent = when(opcion) {
+            "Tienda" -> Intent(this, TiendaActivity::class.java)
+            "Producto" -> Intent(this, DetalleJuegoActivity::class.java)
+            "Camara" -> Intent(this, CamaraActivity::class.java)
+            else -> null
+        }
 
-            }else if (itemElegido == "Camara"){
-                val abrirCamara = Intent(this, CamaraActivity::class.java)
-                startActivity(abrirCamara)
+        intent?.let {
+            startActivity(it)
+        }
+    }
 
-            }
-
-
-
-
-            ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-                val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-                v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-                insets
-            }
+    private fun handleSystemInsets() {
+        val mainView = findViewById<android.view.View>(R.id.main)
+        ViewCompat.setOnApplyWindowInsetsListener(mainView) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
         }
     }
 }
+
 
 /*
 Damian Ramos

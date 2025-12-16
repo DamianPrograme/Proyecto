@@ -1,6 +1,5 @@
 package com.example.proyecto
 
-import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
@@ -20,7 +19,6 @@ class DetalleJuegoActivity : AppCompatActivity() {
     private lateinit var txNombre: TextView
     private lateinit var txTipo: TextView
     private lateinit var txPrecio: TextView
-    private lateinit var btnVolver: Button
     private lateinit var btnAgregarCarrito: Button
 
     private val obtenerTipoJuego = ObtenerTipoJuego()
@@ -40,32 +38,25 @@ class DetalleJuegoActivity : AppCompatActivity() {
         carritoDao = CarritoDao(this)
 
         txNombre = findViewById(R.id.txNombreJuego)
-        txTipo   = findViewById(R.id.txTipoJuego)
+        txTipo = findViewById(R.id.txTipoJuego)
         txPrecio = findViewById(R.id.txPrecioJuego)
-        btnVolver = findViewById(R.id.btnVolverMenu)
         btnAgregarCarrito = findViewById(R.id.btnAgregarCarrito)
 
+        // Datos del juego recibidos
         val nombreJuego = intent.getStringExtra("nombreJuego") ?: "Juego"
-        val precioUsdStr = intent.getStringExtra("precioJuego") ?: "0.0"
-        val precioUsd = precioUsdStr.toDoubleOrNull() ?: 0.0
+        val precioUsd = intent.getStringExtra("precioJuego")?.toDoubleOrNull() ?: 0.0
 
         txNombre.text = nombreJuego
         txTipo.text = "Tipo: ${obtenerTipoJuego.obtener(nombreJuego)}"
         txPrecio.text = "Precio: US$ %.2f (convirtiendo a CLP...)".format(precioUsd)
 
+        // Obtener tipo de cambio y calcular precio en CLP
         val apiMoneda = LeerMonedaApi(this)
         apiMoneda.obtenerFactorUsdAClp(
             onResult = { factorUsdAClp ->
-                val precioClpBruto = precioUsd * factorUsdAClp
-                val precioClpEntero = precioClpBruto.toInt()
-                val precioClpTope = if (precioClpEntero > PRECIO_MAX_CLP) {
-                    PRECIO_MAX_CLP
-                } else {
-                    precioClpEntero
-                }
-                precioClpActual = precioClpTope.toDouble()
-                val precioFormateado = formatoClp.formatear(precioClpTope.toDouble())
-                txPrecio.text = "Precio: $precioFormateado CLP"
+                val precioClp = (precioUsd * factorUsdAClp).toInt().coerceAtMost(PRECIO_MAX_CLP)
+                precioClpActual = precioClp.toDouble()
+                txPrecio.text = "Precio: ${formatoClp.formatear(precioClp.toDouble())} CLP"
             },
             onError = { msg ->
                 txPrecio.text = "Precio: US$ %.2f (sin conversión a CLP)".format(precioUsd)
@@ -73,40 +64,40 @@ class DetalleJuegoActivity : AppCompatActivity() {
             }
         )
 
+        // Agregar al carrito
         btnAgregarCarrito.setOnClickListener {
             val precioClp = precioClpActual
             if (precioClp == null) {
                 Toast.makeText(this, "Espera a que se calcule el precio en CLP", Toast.LENGTH_SHORT).show()
-            } else {
-                val item = CarritoItem(
-                    nombre = nombreJuego,
-                    tipo = obtenerTipoJuego.obtener(nombreJuego),
-                    precioClp = precioClp,
-                    cantidad = 1
-                )
-
-                val idInsertado = carritoDao.insertar(item)
-
-                if (idInsertado != -1L) {
-                    Toast.makeText(this, "Agregado al carrito", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this, "Error al guardar en el carrito", Toast.LENGTH_SHORT).show()
-                }
+                return@setOnClickListener
             }
+
+            val item = CarritoItem(
+                nombre = nombreJuego,
+                tipo = obtenerTipoJuego.obtener(nombreJuego),
+                precioClp = precioClp,
+                cantidad = 1
+            )
+
+            val idInsertado = carritoDao.insertar(item)
+            val mensaje = if (idInsertado != -1L) "Agregado al carrito" else "Error al guardar en el carrito"
+            Toast.makeText(this, mensaje, Toast.LENGTH_SHORT).show()
         }
 
-        btnVolver.setOnClickListener {
-            val anteriorVentana = Intent(this, TiendaActivity::class.java)
-            startActivity(anteriorVentana)
-        }
-
+        // Ajuste de padding según barras del sistema
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
     }
+
+    // Usar botón de retroceso del dispositivo para regresar al menú
+    override fun onBackPressed() {
+        super.onBackPressed() // Regresa al Activity anterior (TiendaActivity)
+    }
 }
+
 
 /*
 Damian Ramos

@@ -15,8 +15,6 @@ class CarritoActivity : AppCompatActivity() {
 
     private lateinit var lvCarrito: ListView
     private lateinit var btnVaciar: Button
-    private lateinit var btnVolver: Button
-
     private lateinit var carritoDao: CarritoDao
     private val formatoClp = FormatoClp()
 
@@ -29,7 +27,6 @@ class CarritoActivity : AppCompatActivity() {
 
         lvCarrito = findViewById(R.id.lvCarrito)
         btnVaciar = findViewById(R.id.btnVaciarCarrito)
-        btnVolver = findViewById(R.id.btnVolverMenuCarrito)
 
         actualizarLista()
 
@@ -38,10 +35,7 @@ class CarritoActivity : AppCompatActivity() {
             actualizarLista()
         }
 
-        btnVolver.setOnClickListener {
-            finish()
-        }
-
+        // Ajuste de padding según barras del sistema
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
@@ -58,7 +52,13 @@ class CarritoActivity : AppCompatActivity() {
         val adaptador = ArrayAdapter(this, android.R.layout.simple_list_item_1, textos)
         lvCarrito.adapter = adaptador
     }
+
+    // El botón de retroceso del dispositivo cerrará la actividad
+    override fun onBackPressed() {
+        super.onBackPressed()
+    }
 }
+
 
 /*
 Damian Ramos

@@ -12,44 +12,75 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.addTextChangedListener
 
 class LoginActivity : AppCompatActivity() {
+
+    private lateinit var edUsername: EditText
+    private lateinit var edPasswd: EditText
+    private lateinit var btnIngreso: Button
+    private lateinit var txMensaje: TextView
+
+    private val defaultUsername = "admin"
+    private val defaultPassword = "admin"
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
 
-        val edUsername: EditText = findViewById(R.id.edUsername)
-        val edPasswd: EditText = findViewById(R.id.edPasswd)
-        val btnIngreso: Button = findViewById(R.id.btnIngresar)
-        val txMensaje: TextView = findViewById(R.id.txMensaje)
+        bindViews()
+        setupFieldListeners()
+        setupLoginButton()
+        handleSystemInsets()
+    }
 
-        var defUsername = "admin"
-        var defPasswd = "admin"
+    private fun bindViews() {
+        edUsername = findViewById(R.id.edUsername)
+        edPasswd = findViewById(R.id.edPasswd)
+        btnIngreso = findViewById(R.id.btnIngresar)
+        txMensaje = findViewById(R.id.txMensaje)
+    }
 
+    private fun setupFieldListeners() {
         btnIngreso.isEnabled = false
-        fun validarcampos(){
-            val usuario = edUsername.text.toString().trim()
-            val pass = edPasswd.text.toString().trim()
-            btnIngreso.isEnabled = usuario.isNotEmpty() && pass.isNotEmpty()
-        }
+        val validator = { validateFields() }
+        edUsername.addTextChangedListener { validator() }
+        edPasswd.addTextChangedListener { validator() }
+    }
 
-        edUsername.addTextChangedListener { validarcampos() }
-        edPasswd.addTextChangedListener { validarcampos() }
+    private fun validateFields() {
+        val username = edUsername.text.toString().trim()
+        val password = edPasswd.text.toString().trim()
+        btnIngreso.isEnabled = username.isNotEmpty() && password.isNotEmpty()
+    }
 
+    private fun setupLoginButton() {
         btnIngreso.setOnClickListener {
-            if(edUsername.text.toString() == defUsername.toString()
-                && edPasswd.text.toString() == defPasswd.toString()){
-                val nuevaVentana = Intent(this, MenuPrincipalActivity::class.java)
-                nuevaVentana.putExtra("par_usern",edUsername.text.toString())
-                startActivity(nuevaVentana)
-            }else{
-                txMensaje.text = "Error Usuario/Contraseña"
+            btnIngreso.isEnabled = false // Evita doble click
+            val username = edUsername.text.toString()
+            val password = edPasswd.text.toString()
+            if (username == defaultUsername && password == defaultPassword) {
+                navigateToMenu(username)
+            } else {
+                showErrorMessage("Error: Usuario o contraseña incorrectos")
+                btnIngreso.isEnabled = true
             }
         }
+    }
 
+    private fun navigateToMenu(username: String) {
+        val intent = Intent(this, MenuPrincipalActivity::class.java)
+        intent.putExtra("par_usern", username)
+        startActivity(intent)
+        finish()
+    }
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
+    private fun showErrorMessage(message: String) {
+        txMensaje.text = message
+    }
+
+    private fun handleSystemInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { view, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            view.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
     }

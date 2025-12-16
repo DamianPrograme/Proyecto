@@ -16,17 +16,12 @@ import com.example.proyecto.Funciones.CombinarProductosWarhammer
 
 class TiendaActivity : AppCompatActivity() {
 
-
-
     private lateinit var lvTienda: ListView
-    private lateinit var btnVolver: Button
+    private lateinit var btnCarrito: Button
+
     private val nombresProductos = mutableListOf<String>()
     private var productosApi: List<ProductoApi> = emptyList()
     private val combinadorWarhammer = CombinarProductosWarhammer()
-    private lateinit var btnCarrito: Button
-
-
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,37 +29,37 @@ class TiendaActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main3)
 
         lvTienda = findViewById(R.id.lvTienda)
-        btnVolver = findViewById(R.id.btnVolverMenu)
         btnCarrito = findViewById(R.id.btnVerCarrito)
 
-        val adaptador = ArrayAdapter(
-            this,
-            android.R.layout.simple_list_item_1,
-            nombresProductos
-        )
-
+        val adaptador = ArrayAdapter(this, android.R.layout.simple_list_item_1, nombresProductos)
         lvTienda.adapter = adaptador
+
         lvTienda.setOnItemClickListener { _, _, position, _ ->
             if (position in productosApi.indices) {
                 val producto = productosApi[position]
-
-                val intent = Intent(this, DetalleJuegoActivity::class.java)
-                intent.putExtra("nombreJuego", producto.title)
-                intent.putExtra("precioJuego", producto.price.toString())
+                val intent = Intent(this, DetalleJuegoActivity::class.java).apply {
+                    putExtra("nombreJuego", producto.title)
+                    putExtra("precioJuego", producto.price.toString())
+                }
                 startActivity(intent)
             }
-        }
-
-        btnVolver.setOnClickListener {
-            val anteriorVentana = Intent(this, MenuPrincipalActivity::class.java)
-            startActivity(anteriorVentana)
         }
 
         btnCarrito.setOnClickListener {
             startActivity(Intent(this, CarritoActivity::class.java))
         }
 
+        cargarProductos(adaptador)
 
+        // Ajuste de padding según barras del sistema
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
+    }
+
+    private fun cargarProductos(adaptador: ArrayAdapter<String>) {
         val apiProductos = LeerProductosApi(this)
         apiProductos.cargarProductos(
             onResult = { lista ->
@@ -75,7 +70,6 @@ class TiendaActivity : AppCompatActivity() {
             },
             onError = { msg ->
                 Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
-
                 if (nombresProductos.isEmpty()) {
                     val mock = listOf(
                         ProductoApi(1, "Dummy 1", 7.9),
@@ -89,14 +83,14 @@ class TiendaActivity : AppCompatActivity() {
                 }
             }
         )
+    }
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
+    // Ahora el botón de retroceso del dispositivo regresa al menú principal
+    override fun onBackPressed() {
+        super.onBackPressed()
     }
 }
+
 
 /*
 Damian Ramos
